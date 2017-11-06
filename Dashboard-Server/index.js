@@ -2,25 +2,53 @@ const Hapi = require('hapi');
 const csv = require('csv');
 const fs = require('fs');
 const _ = require('underscore');
-const corsHeaders = require('hapi-cors-headers')
+const corsHeaders = require('hapi-cors-headers');
+
+var processCSV = () => {
+    return new Promise((resolve, reject) => {
+        
+            var parser = csv.parse({columns: true});
+            var data = [];
+            
+            parser.on('readable', function () {
+                var r;
+                while (r = parser.read()) {
+                    data.push(r);
+                }
+            });
+            parser.on('error', function (err) {
+                reject(err);
+            });
+            parser.on('finish', function () {
+                resolve(data);
+            });
+            const input = fs.createReadStream(__dirname+'/Assignment.csv');
+            input.pipe(parser);
+            
+        });
+}
+
+let data = '';
+let publishers={}, bidder={};
+
+processCSV().then(response => {
+    data = response;
+    publishers = _.groupBy(data,'Publisher');
+    bidders = _.groupBy(data,'Bidder');
+});
 
 const server = new Hapi.Server();
 server.connection({ port: 4000, host: 'localhost', routes: { cors: { origin: ['*'] } } });
 
-let data = '';
 
 server.ext('onPreResponse', corsHeaders);
 
 server.start((err) => {
 
-    processCSV().then(response => {
-        data = response
-         if (err) {
+        if (err) {
             throw err;
         }
         console.log(`Server running at: ${server.info.uri}`);
-    });
-    
 });
 
 server.route({
@@ -56,34 +84,9 @@ server.route({
 });
 
 
-const processCSV = () => {
-    return new Promise((resolve, reject) => {
-        
-            var parser = csv.parse({columns: true});
-            var data = [];
-            
-            parser.on('readable', function () {
-                var r;
-                while (r = parser.read()) {
-                    data.push(r);
-                }
-            });
-            parser.on('error', function (err) {
-                reject(err);
-            });
-            parser.on('finish', function () {
-                resolve(data);
-            });
-            const input = fs.createReadStream(__dirname+'/Assignment.csv');
-            input.pipe(parser);
-            
-        });
-}
-
-
 var getTotalHitRatioByBidder = (publisher,cb) => {
     
-    const publishers = _.groupBy(data,'Publisher');
+    
     let publisherKeys = Object.keys(publishers);
 
     const countryPublishers = {};    
@@ -126,9 +129,7 @@ var getTotalHitRatioByBidder = (publisher,cb) => {
     
 }
 
-const getTotalCostByPublisher = (bidder,cb) => {
-
-    const bidders = _.groupBy(data,'Bidder');
+var getTotalCostByPublisher = (bidder,cb) => {
 
     let bidderKeys = Object.keys(bidders);
     const countryBidder = {};
