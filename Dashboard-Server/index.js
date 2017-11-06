@@ -128,7 +128,7 @@ var getTotalHitRatioByBidder = (publisher,cb) => {
 
 const getTotalCostByPublisher = (bidder,cb) => {
 
-    const bidders = _.groupBy(data,'BIdder');
+    const bidders = _.groupBy(data,'Bidder');
 
     let bidderKeys = Object.keys(bidders);
     const countryBidder = {};
